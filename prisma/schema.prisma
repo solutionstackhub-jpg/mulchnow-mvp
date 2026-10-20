@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  address     String
+  city        String?
+  state       String?
+  zip         String?
+  status      String   @default("new")
+  source      String   @default("website")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  quotes      Quote[]
+  emails      EmailLog[]
+}
+
+model Quote {
+  id              String   @id @default(cuid())
+  leadId          String
+  lead            Lead     @relation(fields: [leadId], references: [id])
+  address         String
+  totalSqFt       Float
+  mulchType       String
+  depth           Float
+  yardsNeeded     Float
+  pricePerYard    Float
+  totalPriceLow   Float
+  totalPriceHigh  Float
+  status          String   @default("pending")
+  propertyData    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PricingRule {
+  id            String   @id @default(cuid())
+  name          String
+  mulchType     String
+  pricePerYard  Float
+  minDepth      Float    @default(2.0)
+  maxDepth      Float    @default(4.0)
+  market        String   @default("default")
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  type      String
+  subject   String
+  body      String
+  sentAt    DateTime @default(now())
+}
+
+model Truck {
+  id          String   @id @default(cuid())
+  name        String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  telemetry   TelemetryReading[]
+}
+
+model TelemetryReading {
+  id          String   @id @default(cuid())
+  truckId     String
+  truck       Truck    @relation(fields: [truckId], references: [id])
+  timestamp   DateTime @default(now())
+  latitude    Float?
+  longitude   Float?
+  engineOn    Boolean?
+  fuelLevel   Float?
+  engineHours Float?
+  data        String?
+}
