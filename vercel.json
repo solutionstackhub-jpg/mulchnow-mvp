@@ -1,8 +1,5 @@
 {
-  "buildCommand": "prisma generate && prisma db push && tsx prisma/seed.ts && next build",
+  "buildCommand": "DATABASE_URL=file:./dev.db prisma generate && DATABASE_URL=file:./dev.db prisma db push && DATABASE_URL=file:./dev.db tsx prisma/seed.ts && next build",
   "installCommand": "npm install --include=dev",
-  "framework": "nextjs",
-  "env": {
-    "DATABASE_URL": "file:./dev.db"
-  }
+  "framework": "nextjs"
 }
