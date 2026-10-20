@@ -6,6 +6,9 @@ const nextConfig = {
       { protocol: "https", hostname: "plus.unsplash.com" },
     ],
   },
+  outputFileTracingIncludes: {
+    "/api/**": ["./prisma/dev.db"],
+  },
 };
 
 export default nextConfig;

@@ -5,3 +5,4 @@ prisma/dev.db
 prisma/dev.db-journal
 tsconfig.tsbuildinfo
 next-env.d.ts
+node_modules

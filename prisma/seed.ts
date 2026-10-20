@@ -31,8 +31,11 @@ async function main() {
     { name: "Premium Soil Blend", mulchType: "soil", pricePerYard: 45, market: "ohio", sortOrder: 12 },
   ];
 
-  for (const rule of pricingRules) {
-    await prisma.pricingRule.create({ data: rule });
+  const existingRules = await prisma.pricingRule.count();
+  if (existingRules === 0) {
+    for (const rule of pricingRules) {
+      await prisma.pricingRule.create({ data: rule });
+    }
   }
 
   const leads = [
@@ -97,6 +100,12 @@ async function main() {
       source: "website",
     },
   ];
+
+  const existingLeads = await prisma.lead.count();
+  if (existingLeads > 0) {
+    console.log("Database already seeded, skipping leads.");
+    return;
+  }
 
   for (const lead of leads) {
     const createdLead = await prisma.lead.create({ data: lead });
