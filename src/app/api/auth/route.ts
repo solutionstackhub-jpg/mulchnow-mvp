@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { adminUser } from "@/lib/data";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
@@ -14,18 +14,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.adminUser.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
+    if (email !== adminUser.email) {
       return NextResponse.json(
         { success: false, error: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(password, adminUser.password);
 
     if (!isValidPassword) {
       return NextResponse.json(
@@ -37,9 +33,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        name: user.name,
-        email: user.email,
-        role: user.role,
+        name: adminUser.name,
+        email: adminUser.email,
+        role: adminUser.role,
       },
     });
   } catch (error) {

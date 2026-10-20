@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "postinstall": "DATABASE_URL=file:./dev.db prisma generate",
-    "build": "DATABASE_URL=file:./dev.db prisma generate && DATABASE_URL=file:./dev.db prisma db push && DATABASE_URL=file:./dev.db tsx prisma/seed.ts && next build",
+    "build": "next build",
     "start": "next start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

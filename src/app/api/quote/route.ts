@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { addLead, getPricingRules, leads } from "@/lib/data";
 import { calculateYardsNeeded, calculatePriceRange } from "@/lib/pricing";
-import { sendQuoteEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,13 +31,10 @@ export async function POST(request: NextRequest) {
     const yardsNeeded = calculateYardsNeeded(totalSqFt, depth);
 
     // Look up pricing rule for this mulch type and market
-    const pricingRule = await prisma.pricingRule.findFirst({
-      where: {
-        mulchType,
-        market: market || "default",
-        isActive: true,
-      },
-    });
+    const rules = getPricingRules(market || "default");
+    const pricingRule = rules.find(
+      (r) => r.mulchType === mulchType && r.isActive
+    );
 
     if (!pricingRule) {
       return NextResponse.json(
@@ -51,47 +47,35 @@ export async function POST(request: NextRequest) {
     const priceRange = calculatePriceRange(yardsNeeded, pricingRule.pricePerYard);
 
     // Create lead
-    const lead = await prisma.lead.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        phone: phone || null,
-        address,
-        city: city || null,
-        state: state || null,
-        zip: zip || null,
-        status: "new",
-        source: "website",
-      },
-    });
-
-    // Create quote
-    const quote = await prisma.quote.create({
-      data: {
-        leadId: lead.id,
-        address,
-        totalSqFt: parseFloat(String(totalSqFt)),
-        mulchType,
-        depth: parseFloat(String(depth)),
-        yardsNeeded,
-        pricePerYard: pricingRule.pricePerYard,
-        totalPriceLow: priceRange.low,
-        totalPriceHigh: priceRange.high,
-        status: "pending",
-      },
-    });
-
-    // Send quote confirmation email
-    await sendQuoteEmail(lead.id, {
+    const lead = addLead({
       firstName,
+      lastName,
       email,
+      phone: phone || null,
       address,
-      mulchType,
-      yards: yardsNeeded,
-      priceLow: priceRange.low,
-      priceHigh: priceRange.high,
+      city: city || null,
+      state: state || null,
+      zip: zip || null,
+      source: "website",
     });
+
+    // Create quote and attach to lead
+    const quote = {
+      id: `q_${Date.now()}`,
+      leadId: lead.id,
+      address,
+      totalSqFt: parseFloat(String(totalSqFt)),
+      mulchType,
+      depth: parseFloat(String(depth)),
+      yardsNeeded,
+      pricePerYard: pricingRule.pricePerYard,
+      totalPriceLow: priceRange.low,
+      totalPriceHigh: priceRange.high,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    lead.quotes.push(quote);
 
     return NextResponse.json({
       quote: {
@@ -111,10 +95,15 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const quotes = await prisma.quote.findMany({
-      include: { lead: true },
-      orderBy: { createdAt: "desc" },
-    });
+    // Gather all quotes from all leads, with lead data attached
+    const quotes = leads
+      .flatMap((lead) =>
+        lead.quotes.map((quote) => ({
+          ...quote,
+          lead,
+        }))
+      )
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return NextResponse.json({ quotes });
   } catch (error) {

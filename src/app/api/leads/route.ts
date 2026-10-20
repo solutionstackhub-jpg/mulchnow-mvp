@@ -1,31 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getLeads, addLead } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const search = searchParams.get("search");
+    const status = searchParams.get("status") || undefined;
+    const search = searchParams.get("search") || undefined;
 
-    const where: Record<string, unknown> = {};
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (search) {
-      where.OR = [
-        { firstName: { contains: search } },
-        { lastName: { contains: search } },
-        { email: { contains: search } },
-      ];
-    }
-
-    const leads = await prisma.lead.findMany({
-      where,
-      include: { quotes: true },
-      orderBy: { createdAt: "desc" },
-    });
+    const leads = getLeads(status, search);
 
     return NextResponse.json({ leads });
   } catch (error) {
@@ -40,7 +22,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, phone, address, city, state, zip, status, source, notes } = body;
+    const { firstName, lastName, email, phone, address, city, state, zip, source, notes } = body;
 
     if (!firstName || !lastName || !email || !address) {
       return NextResponse.json(
@@ -49,20 +31,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const lead = await prisma.lead.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        phone: phone || null,
-        address,
-        city: city || null,
-        state: state || null,
-        zip: zip || null,
-        status: status || "new",
-        source: source || "admin",
-        notes: notes || null,
-      },
+    const lead = addLead({
+      firstName,
+      lastName,
+      email,
+      phone: phone || null,
+      address,
+      city: city || null,
+      state: state || null,
+      zip: zip || null,
+      source: source || "admin",
     });
 
     return NextResponse.json({ lead }, { status: 201 });
